@@ -50,7 +50,7 @@ wss.on 'connection', (client) =>
     console.log "message", msg
 
     # broadcast to all other clients
-    c.send msg for c in clients when c != client
+    c.send msg for c in clients when c != client and c.readyState is c.OPEN
 
   client.on 'close', (reason) ->
     console.log "Client disconnected (#{reason})"
@@ -64,8 +64,8 @@ server.listen 4321
 # Proxy incoming messages from other network channels
 @listen 'incoming message', ({data: msg}) ->
   msg = JSON.stringify msg
-  c.send msg for c in clients unless msg.local
+  c.send msg for c in clients when c.readyState is c.OPEN unless msg.local
 
 @listen 'send message', ({data: msg}) ->
   msg = JSON.stringify msg
-  c.send msg for c in clients unless msg.local
+  c.send msg for c in clients when c.readyState is c.OPEN unless msg.local

@@ -15,7 +15,6 @@ libAdd = (code, cb, add) ->
     if data = _.inspectRobot(robot.code) or {}
       robot.name = data.name
       robot.info = data.info or {}
-      console.log "setting", robot.info, "stored"
       robot.info.stored = true
     robot.intercept 'add', libAdd
     cb null, robot
