@@ -1,0 +1,10 @@
+@robot "styler",
+  description: "Adds styles. This robot is dumb."
+  local: true
+
+@listen "add style", ({data: style}, reply) ->
+  try
+    $(document.head).append $('<style>').text(style)
+    reply "ok"
+  catch e
+    reply "error", e

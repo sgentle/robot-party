@@ -1,0 +1,17 @@
+@robot "mainpaneller",
+  description: "Shows robots."
+  local: true
+
+@element = el = document.createElement 'div'
+
+el.id = _.randomId()
+
+$(el).css
+  order: -1
+  width: '100%'
+  height: '100%'
+  'overflow-y': 'scroll'
+
+@listen "robots updated", (data, reply) ->
+  reply 'inverse query robots', [{info: local: true}, {info: stored: true}], ({data: robots}) ->
+    @transmit "render robots", target: el.id, robots: robots

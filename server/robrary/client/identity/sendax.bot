@@ -1,0 +1,20 @@
+@robot "sendax",
+  description: "Sends chat messages and user commands."
+  local: true
+
+@defaults.transmit.local = false
+
+defaults = {}
+
+@listen "message clicked", ({data: {id}}) ->
+  defaults = if typeof id is 'string' then {re: id} else {}
+
+@listen "robot clicked", ({data: id}) ->
+  defaults = if typeof id is 'string' then {to: id} else {}
+
+@listen "user input", ({data: value}, reply) ->
+  return if value[0] is '/'
+  msg = type: "chat", data: value
+  msg[k] = v for k, v of defaults
+
+  @transmit msg

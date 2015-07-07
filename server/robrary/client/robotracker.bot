@@ -1,0 +1,61 @@
+@robot 'robotracker',
+  description: "Tracks robots."
+  local: true
+
+robots = {}
+
+update = => @transmit type: "list robots", local: false
+#setInterval update, 60*1000
+#setTimeout update, 0
+update()
+
+updateDebounce = null
+updated = =>
+  clearTimeout updateDebounce
+  updateDebounce = setTimeout =>
+    @transmit 'robots updated'
+  , 100
+
+@listen 'network connected', update
+@listen 'network disconnected', ({data: networkid}) ->
+  anyrobots = false
+  for id, robot of robots when robot.network and robot.network is networkid
+    delete robots[id]
+    anyrobots = true
+  updated() if anyrobots
+
+@noDefaults ->
+  @listen "I have robots", ({from, path, data: robolist}) ->
+    for robot in robolist
+      newbot = robots[robot.id] = JSON.parse(JSON.stringify(robot))
+      #newbot.parent = from
+      newbot.network = path[0] if path
+    updated()
+
+  @listen "robot added", ({from, path, data: robot}) ->
+    newbot = robots[robot.id] = JSON.parse(JSON.stringify(robot))
+    newbot.parent = from
+    newbot.network = path[0] if path
+    updated()
+
+  @listen "robot removed", ({from, data: id}) ->
+    delete robots[id]
+    updated()
+
+@listen "inverse query robots", ({data: queries}, reply) ->
+  queries = [queries] if !Array.isArray queries
+  robolist = (robot for id, robot of robots when not queries.some (query) -> _.matchQuery robot, query)
+  robolist.sort (a, b) -> a.id.localeCompare(b.id)
+  reply "robot query response", robolist
+
+@listen "query robots", ({data: queries}, reply) ->
+  queries = [queries] if !Array.isArray queries
+  robolist = (robot for id, robot of robots when queries.some (query) -> _.matchQuery robot, query)
+  robolist.sort (a, b) -> a.id.localeCompare(b.id)
+  reply "robot query response", robolist
+
+@listen "get robot info", ({data:id}, reply) ->
+  if robots[id]
+    reply "robot info", robots[id]
+  else
+    reply "error", "no such robot"

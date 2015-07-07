@@ -1,0 +1,87 @@
+@robot "inputnik",
+  description: "Input box."
+  local: true
+
+@intercept 'distributeUp', (msg, source, distributeUp) ->
+  distributeUp msg, source unless msg.type is 'key sent'
+
+inputbox = $("<div id='inputbox' />")
+cmd = $("<textarea id='cmd' autofocus />")
+rebox = $("<div id='rebox' />")
+inputbox.append rebox
+inputbox.append cmd
+
+@element = inputbox[0]
+
+@transmit "add style", "
+  #inputbox {
+    width: 100%;
+    height: 2.4em;
+    font-family: inherit;
+    font-size: inherit;
+    display: table;
+  }
+  #cmd {
+    display: table-cell;
+    font-family: inherit;
+    font-size: inherit;
+    width: 100%;
+    height: 100%;
+  }
+  #rebox {
+    display: table-cell;
+    height: 100%;
+    width: 1px;
+    max-width: 150em;
+    white-space: nowrap;
+    background-color: #55F;
+    color: #ccc;
+    vertical-align: middle;:
+  }
+"
+
+rebox.hide()
+
+cmd.keydown (ev) =>
+  @transmit "key sent",
+    key: ev.which,
+    ctrl: ev.ctrlKey,
+    alt: ev.altKey,
+    meta: ev.metaKey,
+    shift: ev.shiftKey,
+
+  ev.preventDefault() if ev.which is 13
+
+
+@listen "message clicked", ({data: {id, source}}) ->
+  if typeof id is 'string'
+    rebox.text "RE: #{source}"
+    rebox.show()
+  else
+    rebox.hide()
+
+  cmd.focus()
+
+@listen "robot clicked", ({data: id}) ->
+  if typeof id is 'string'
+    @transmit "get robot info", id, ({data}) ->
+      if data.err
+        rebox.hide()
+      else
+        rebox.text "TO: #{data.name}"
+        rebox.show()
+  else
+    rebox.hide()
+
+  cmd.focus()
+
+@listen "get input", ({data}, reply) ->
+  reply "input value", cmd.val()
+
+@listen "set input", ({data}, reply) ->
+  cmd.val(data)
+  reply "ok"
+
+@listen "append input", ({data}, reply) ->
+  cmd[0].value += data
+  reply "ok"

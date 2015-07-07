@@ -1,0 +1,33 @@
+@robot "visualbasic",
+  description: "Create a GUI Interface using visualbasic."
+  local: true
+
+# Any robots added to this robot will be checked for an @element property. If
+# found, that element will be appended to this @element. This is done
+# recursively.
+
+$('body').css
+  'font-family': "'Ubuntu Mono', monospace"
+  margin: 0
+  overflow: 'hidden'
+
+console.log "happening status:", "HAPPENING"
+@element = document.body
+
+guiRemove = (cleanup) ->
+  console.log "cleanup for", robot.name
+  console.log "cleaning up", @element
+  @element.remove()
+  cleanup()
+
+guiAdd = (code, cb, add) ->
+  add code, (err, robot) =>
+    console.log "robot is", robot.name
+    if @element and robot?.element
+      robot.intercept 'add', guiAdd
+      @element.appendChild robot.element
+      robot.intercept 'cleanup', guiRemove
+    cb err, robot
+
+@intercept 'add', guiAdd
+@intercept 'cleanup', guiRemove

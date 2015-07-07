@@ -1,0 +1,28 @@
+@robot "mainpaneller",
+  local: true
+  version: '0.0.0'
+  description: "Panel of main (ie non-local-only) robots."
+
+query = {info: {local: '{falsy}'}}
+queryJSON = JSON.stringify query
+target = '#mainpanel'
+
+@transmit "add style", "
+  #mainpanel {
+    width: 100%;
+    height: 30%;
+    border-bottom: 1px solid black;
+    overflow-y: scroll;
+  }
+"
+
+@transmit "query robots", query, ({data: robots}) ->
+  @transmit "render robots", target: target, robots: robots
+
+@transmit "watch query robots", query
+
+@listen type:"query matched update", local: true, data: {query: JSON.stringify query}, ({data}) ->
+  @transmit "render robots", target: target, robots: data.robots
+
+@listen type:"query matched remove", local: true, data: {query: JSON.stringify query}, ({data}) ->
+  @transmit "unrender robots", target: target, robots: data.robots

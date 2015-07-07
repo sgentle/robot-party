@@ -1,0 +1,68 @@
+@robot 'netwerk',
+  description: "Wraps network-related robots so they can process messages before the messages enter general circulation."
+  local: true
+
+messages = {}
+registered = incoming: 0, outgoing: 0
+
+maybepass = (id) ->
+  if messages[id]?.topass is 0
+    #console.log "distributing", id, messages[id]
+    messages[id].pass messages[id].msg
+    delete messages[id]
+
+# Replace the default distribute behaviour
+#
+# Don't receive messages from parent normally, instead turn them into
+# "outgoing message" messages that can be dealt with by children
+#
+# Similarly, don't distribute messages up by default. Instead, messages to be
+# sent to the parent will be represented by the "incoming message" message.
+
+NETWORK_MESSAGES = 'register incoming,register outgoing,pass,pass with changes,send message,incoming message,outgoing message'.split(',')
+
+@distribute = (msg, source) ->
+  if @parent is source and !msg.local
+    @receive msg
+
+    id = _.randomId()
+    messages[id] =
+      msg: msg
+      topass: registered.outgoing
+      pass: (msg) =>
+        @transmit "send message", msg
+    @transmit type: "outgoing message", id: id, data: msg
+    maybepass id
+
+  else
+    @receive msg unless this is source
+    @distributeUp msg, source unless msg?.type in NETWORK_MESSAGES
+    @distributeDown msg, source
+
+
+@listen "incoming message", ({id, data:msg}) ->
+  messages[id] =
+    msg: msg
+    topass: registered.incoming
+    pass: (msg) => @distributeUp msg, this
+  maybepass id
+
+
+@listen "register incoming", ->
+  registered.incoming++
+
+@listen "register outgoing", ->
+  registered.outgoing++
+
+
+@listen "pass with changes", ({data:{id, changes}}) ->
+  #console.log "!!!!! got pass with changes", id, changes
+  if messages[id]
+    messages[id].msg[key] = val for key, val of changes
+    messages[id].topass--
+    maybepass id
+
+@listen "pass", ({data:id}) ->
+  if messages[id]
+    messages[id].topass--
+    maybepass id

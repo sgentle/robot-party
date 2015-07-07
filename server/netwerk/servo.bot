@@ -1,0 +1,71 @@
+@robot 'servo',
+  local: true
+  description: "Serves web interface and listens for websocket connections."
+
+express = require 'express'
+WebSocketServer = require('ws').Server
+app = express()
+
+app.use express.static(__dirname + '/public')
+
+fs = require 'fs'
+path = require 'path'
+
+Robot = require './Robot.coffee.md'
+
+safeReaddir = (dir) ->
+  try
+    fs.readdirSync dir
+  catch
+    null
+
+getbot = (file) ->
+  code = fs.readFileSync file, 'utf8'
+  dir = file.replace(new RegExp("#{path.extname file}$"), '')
+  if files = safeReaddir dir
+    {
+      code: code
+      children: getbot path.join(dir, f) for f in files when path.extname(f) is '.bot'
+    }
+  else
+    code
+
+app.get '/client.bot', (req, res) ->
+  # This is dodgy, we should use robrary
+  res.send getbot 'server/robrary/client.bot'
+
+server = require('http').createServer(app)
+
+wss = new WebSocketServer {server, path: '/sock'}
+
+clients = []
+wss.on 'connection', (client) =>
+  console.log "Client connected"
+
+  clients.push client
+
+  client.on 'message', (msg) =>
+    return if msg is null or msg.local
+    @transmit 'incoming message', JSON.parse msg
+    console.log "message", msg
+
+    # broadcast to all other clients
+    c.send msg for c in clients when c != client
+
+  client.on 'close', (reason) ->
+    console.log "Client disconnected (#{reason})"
+    # Remove the client from the client list
+    clients = (c for c in clients when c != client)
+
+
+
+server.listen 4321
+
+# Proxy incoming messages from other network channels
+@listen 'incoming message', ({data: msg}) ->
+  msg = JSON.stringify msg
+  c.send msg for c in clients unless msg.local
+
+@listen 'send message', ({data: msg}) ->
+  msg = JSON.stringify msg
+  c.send msg for c in clients unless msg.local

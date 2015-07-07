@@ -1,0 +1,61 @@
+@robot "displayinator",
+  description: "Message window."
+  local: true
+
+@intercept 'distributeUp', (msg, source, distributeUp) ->
+  distributeUp msg, source unless msg.type in ['display message', 'build message']
+
+container = $("<div id='message-container' />")
+messages = $("<div id='messages' />")
+container.append messages
+@element = container[0]
+
+container.css
+  'overflow-y': 'scroll'
+  width: '100%'
+messages.css 'display': 'table'
+
+@transmit "add style", "
+  .message {
+    display: table-row;
+  }
+"
+
+messages.on 'click', '.source', (ev) =>
+  return if window.getSelection?()?.isCollapsed is false
+
+  message = $(ev.currentTarget).parents('.message')
+  id = message.attr 'id'
+  data = message.data()
+
+  if id
+    id = id.replace /^msg-/, ''
+    source = message.children('.source').text()
+    @transmit 'message clicked', {id, source, from: data.from}
+  else
+    @transmit 'message clicked', {}
+  ev.stopPropagation()
+
+container.on 'click', (ev) =>
+  @transmit 'message clicked', {} unless window.getSelection?()?.isCollapsed is false
+
+@listen "display message", ({user, data: {message, id, re, from}}) ->
+  scroll = (container.scrollTop() + container.height() == container[0].scrollHeight)
+
+  id = if id then "msg-#{id}" else ""
+  re = if re then "msg-#{re}" else ""
+
+  html = $("<div id='#{id}' class='message'>#{message}</div>")
+  html.attr 'data-from', from
+
+  jqescape = (x) -> x.replace(/([ #;&,.+*~\':"!^$[\]()=>|\/@])/g,'\\$1')
+  sel = "##{jqescape re}, ##{jqescape re} ~ [data-re=\"#{jqescape re}\"]"
+
+  if re and (reEl = $(sel).last()) and reEl.length
+    html.attr 'data-re', re
+    html.addClass 're'
+    reEl.after html
+  else
+    messages.append html
+
+  container.scrollTop container[0].scrollHeight if scroll

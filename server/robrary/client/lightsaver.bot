@@ -1,0 +1,11 @@
+@robot 'lightsaver',
+  local: true
+  description: "Saves its parent when told to"
+
+@listen 'save robocode', ->
+  @transmit type: 'get robot', to: @parent.id, ({data: code}, reply) ->
+    try
+      localStorage.setItem 'client.bot', JSON.stringify(code)
+      reply "ok"
+    catch e
+      reply type: "error", error: e

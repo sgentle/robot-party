@@ -1,0 +1,46 @@
+@robot 'federatron',
+  local: true
+  description: "Connects us to another network that listens on sockjs."
+
+WS = window?.WebSocket or require('ws')
+
+@listen 'federate', ({data: host}, reply) =>
+  if typeof host isnt 'string' and typeof window isnt 'undefined'
+    proto = if window.location.protocol is 'https:' then 'wss' else 'ws'
+    host = "#{proto}://#{window.location.host}/sock"
+  #host += '/websocket' if !window?.SockJS
+
+  party = null
+
+  connect = =>
+    networkid = _.randomId()
+    party = new WS host
+    connected = false
+
+    party.onopen = =>
+      connected = true
+      console.log 'connected'
+      @transmit 'network connected', networkid
+
+    party.onmessage = (e) =>
+      return if party.readyState isnt 1
+      msg = JSON.parse e.data
+      (msg.path ||= []).unshift networkid
+      @transmit 'incoming message', msg unless msg.local
+
+    party.onclose = =>
+      console.log "connection lost, reconnecting..."
+      @transmit 'network disconnected', networkid if connected
+      setTimeout connect, 5000
+
+
+  connect()
+
+  @listen 'incoming message', ({data: msg}) ->
+    party.send msg unless msg.local
+
+  @listen 'send message', ({data: msg}) ->
+    #console.log "got send message", msg
+    return if party.readyState isnt 1
+    unless msg.local
+      party.send JSON.stringify msg

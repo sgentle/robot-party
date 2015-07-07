@@ -1,0 +1,13 @@
+@robot "head-r",
+  description: "Header robot."
+  local: true
+
+@element = el = document.createElement 'header'
+
+$(el).css
+  order: -10
+  padding: '0 5%'
+
+el.innerHTML = """
+  <h1>Robot Party!</h1>
+"""

@@ -1,0 +1,13 @@
+@robot 'server'
+
+setTimeout =>
+  @transmit "hi there"
+, 1000
+
+# setInterval =>
+#   @transmit type: "hi there", trusted: true
+# , 5000
+
+# setTimeout =>
+#   @transmit "list robots"
+# , 5000

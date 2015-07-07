@@ -1,0 +1,5 @@
+@robot 'print',
+  local: true
+  description: "Console logs whatever it sees."
+
+@listen (data) -> console.log data.type, data

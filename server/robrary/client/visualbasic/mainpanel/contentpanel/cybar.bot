@@ -1,0 +1,12 @@
+@robot "cybar",
+  description: "A sidebar"
+  local: true
+
+@element = el = document.createElement 'div'
+
+$(el).css
+  display: 'flex'
+  order: 10
+  width: '30%'
+  height: '100%'
+  'flex-direction': 'column'

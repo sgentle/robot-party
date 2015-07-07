@@ -1,0 +1,32 @@
+@robot 'identity',
+  description: "Identity bot for user. Wraps robots inside it with user information."
+  user: true
+
+
+@name = 'anon'
+
+@oldDistributeUp = @distributeUp
+@distributeUp = (msg, source) ->
+  msg.user = @name
+  @oldDistributeUp msg, source
+
+setUser = (name) =>
+  @transmit local: true, type: "user name", data: name
+  @transmit "robot name", name
+  @transmit local: true, type: "set value", data: {key: 'nickname', value: name}
+  @name = name
+  @transmit "I have robots", [{@id, @name, @info, parent: @parent.id}]
+
+@transmit type: "get value", local: true, data: "nickname", ({type, data}) ->
+  if type is "error"
+    @transmit type:'name me', local: false, ({data}) -> setUser data
+  else
+    setUser data
+
+@listen type: 'user command', local: true, ({data:cmd}, reply) ->
+  if match = cmd.match /nick\s+(.*)$/
+    setUser match[1]
+
+@listen type: 'user name?', local: true, (_, reply) ->
+  if @name isnt 'anon'
+    @transmit local: true, type: "user name", data: @name

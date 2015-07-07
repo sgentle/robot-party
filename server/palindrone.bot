@@ -1,0 +1,7 @@
+@robot 'palindrone',
+  description: "tells you if you've made a palindrome"
+
+@listen 'chat', ({data: msg}, reply) ->
+  norm = msg.replace(/\W/g,'').toLowerCase()
+  if norm == norm.split('').reverse().join('')
+    reply "that's a palindrome!"

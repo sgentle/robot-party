@@ -1,0 +1,16 @@
+@robot "nickformatic",
+  description: "Formats robot and username messages."
+  local: true
+
+me = undefined
+
+@listen type: "robot name", local: undefined, ({robot, data: name}) ->
+  return if me? and name is me
+  @transmit "build message", textclass: "status", text: "* #{robot or 'anonymous'} renamed to #{name}"
+
+@listen "user name", ({data: name}) ->
+  me = name
+  @transmit "build message", textclass: "status", text: "* your name is now #{name}"
+
+@transmit "handling display for type", "user name"
+@transmit "handling display for type", "robot name"

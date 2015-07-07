@@ -1,0 +1,69 @@
+@robot "messagebuilder",
+  description: "Builds standard format messages with a source and a message text (or html)."
+  local: true
+
+escapeHTML = (html) ->
+  escaped =
+    '&': '&amp;'
+    '<': '&lt;'
+    '>': '&gt;'
+    '"': '&quot;'
+    "'": '&apos;'
+
+  String(html).replace /[&<>'"]/g, (chr) -> escaped[chr]
+
+
+nl2br = (html) -> html.replace /\n/g, "<br />"
+
+
+@transmit "add style", "
+  .message .source {
+    display: table-cell;
+    word-break: break-all;
+    text-align: right;
+    padding: 0 10px;
+    border-right: 1px solid lightgray;
+    width: 150px;
+  }
+  .message .source.local {
+    background-color: #f2f5ea;
+  }
+  .message .source.me {
+    background-color: #eaf2f5;
+  }
+  .message .body {
+    display: table-cell;
+    padding: 0 10px;
+    word-break: break-all;
+  }
+  .message .body.json {
+    color: #4155A6;
+  }
+  .message .body.status {
+    color: green;
+  }
+  .message.re .body {
+    padding-left: 2em;
+  }
+"
+
+me = undefined
+@listen "user name", ({data}) -> me = data
+
+@transmit "user name?"
+
+
+@listen "build message", ({user, data: {id, re, from, source, sourceclass, text, textclass, html}}) ->
+  source ||= ''
+  text ||= ''
+  sourceclass ||= ''
+  textclass ||= ''
+
+  sourceclass += "me" if me? and user is me
+
+  message = "
+    <div class='source #{sourceclass}'>#{escapeHTML source}</div>
+    <div class='body #{textclass}'>#{html or (nl2br escapeHTML text)}</div>
+  "
+
+  @transmit type:"display message", user:user, data:{message, id, re, from}

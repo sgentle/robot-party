@@ -1,0 +1,90 @@
+@robot 'd-tail',
+  description: 'Detail view for robots, including list of children and edit/stop buttons.'
+  local: true
+
+@element = el = document.createElement 'div'
+
+el.id = _.randomId()
+
+parentid = _.randomId()
+childrenid = _.randomId()
+
+$(el).css
+  width: '100%'
+  height: '100%'
+
+el.className = 'detailpanel'
+
+
+@listen 'robot clicked', ({data: id}) ->
+  @transmit "get robot info", id, ({type, data: robot}) ->
+    detailView robot if type isnt "error"
+
+@listen 'message clicked', ({data: {from: id}}) ->
+  return unless id
+  @transmit "get robot info", id, ({type, data: robot}) ->
+    detailView robot if type isnt "error"
+
+@transmit "add style", "
+  .detailpanel {
+    width: 100%;
+    height: 40%;
+    border-bottom: 1px solid black;
+    overflow-y: scroll;
+  }
+  .detailpanel .parent {
+    width: 100%;
+    height: 80px;
+  }
+  .detailpanel .tags {
+    font-size: 0.8em;
+  }
+"
+
+currentRobot = null
+
+$(el).droppable drop: (ev, ui) =>
+  data = ui.draggable.data()
+  console.log "got drop for id", data.eid, "parent", data.parent, "to", robot.id
+  @transmit "copy robot", from: data.parent, to: robot.id, id: data.eid
+
+escapeHTML = (html) -> $('<div/>').text(html).html() if html?
+
+detailView = (robot) =>
+  console.log "detail view got", robot
+  currrentRobot = robot
+  el.innerHTML = "<div>#{escapeHTML robot.name}</div>
+    <div>#{escapeHTML (robot.info.description or '')}</div>
+    <div class='tags'>#{(k for k, v of robot.info when v is true).join(' ')}</div>
+    <button id='edit'>edit</button>
+    <button id='remove'>remove</button>
+    <div>Parent</div>
+    <div class='parent' id='#{parentid}'></div>
+    <div>Children</div>
+    <div class='children' id='#{childrenid}'></div>"
+
+  if robot.parent
+    @transmit "get robot info", robot.parent, ({type, data: parent}) ->
+      @transmit "render robots", target: parentid, robots: [parent]
+
+  @transmit "query robots", {parent: robot.id}, ({type, data: children}) ->
+    @transmit "render robots", target: childrenid, robots: children
+
+  $('#edit').click =>
+    if robot.id is @id
+      @transmit "edit robot", title: robot.name, robot: @code, id: robot.id
+    @noDefaults -> @transmit to: robot.id, type: "get robot", ({type, data: code}) ->
+      if type isnt "error"
+        @transmit "edit robot", title: robot.name, robot: code, id: robot.id
+
+  $('#remove').click =>
+    @transmit to: robot.parent, local: false, trusted: true, type: "remove robot", data: robot.id
+
+
+@listen "editbox saved", (data:{id, robot: code}) ->
+  @transmit "get robot info", id, ({type, data: robot}) ->
+    if type isnt "error"
+      @noDefaults -> @transmit to: robot.parent, type: "add robot", trusted: true, data: code, ({type}) ->
+        if type isnt "error"
+          @noDefaults -> @transmit to: robot.parent, type: "remove robot", trusted: true, data: id, ({type}) ->
+            @transmit "robot saved", id unless type is 'error'

@@ -1,0 +1,25 @@
+@robot "iTransmitForTheUsers",
+  description: "Handles /transmit commands."
+  local: true
+
+@defaults.transmit.local = false
+
+defaults = {}
+
+@listen "message clicked", ({data: {id}}) ->
+  defaults = if typeof id is 'string' then {re: id} else {}
+
+@listen "robot clicked", ({data: id}) ->
+  defaults = if typeof id is 'string' then {to: id} else {}
+
+@listen "user input", ({data: value}, reply) ->
+  msg = type: "chat", data: value
+  msg[k] = v for k, v of defaults
+
+@listen 'user command', ({data:cmd, user}, reply) ->
+  if match = cmd.match /^transmit\s+(.*)$/
+    try
+      @withDefaults transmit: {user}, ->
+        eval "this.transmit(#{match[1]});"
+    catch e
+      reply type: "error", local: true, user: user, data: e

@@ -1,0 +1,94 @@
+@robot 'cryptonominom',
+  description: "Wraps outgoing and unwraps incoming messages with RSA signatures."
+  local: true
+
+privateKey = """
+-----BEGIN RSA PRIVATE KEY-----
+MIICWwIBAAKBgQDRhGF7X4A0ZVlEg594WmODVVUIiiPQs04aLmvfg8SborHss5gQ
+Xu0aIdUT6nb5rTh5hD2yfpF2WIW6M8z0WxRhwicgXwi80H1aLPf6lEPPLvN29EhQ
+NjBpkFkAJUbS8uuhJEeKw0cE49g80eBBF4BCqSL6PFQbP9/rByxdxEoAIQIDAQAB
+AoGAA9/q3Zk6ib2GFRpKDLO/O2KMnAfR+b4XJ6zMGeoZ7Lbpi3MW0Nawk9ckVaX0
+ZVGqxbSIX5Cvp/yjHHpww+QbUFrw/gCjLiiYjM9E8C3uAF5AKJ0r4GBPl4u8K4bp
+bXeSxSB60/wPQFiQAJVcA5xhZVzqNuF3EjuKdHsw+dk+dPECQQDubX/lVGFgD/xY
+uchz56Yc7VHX+58BUkNSewSzwJRbcueqknXRWwj97SXqpnYfKqZq78dnEF10SWsr
+/NMKi+7XAkEA4PVqDv/OZAbWr4syXZNv/Mpl4r5suzYMMUD9U8B2JIRnrhmGZPzL
+x23N9J4hEJ+Xh8tSKVc80jOkrvGlSv+BxwJAaTOtjA3YTV+gU7Hdza53sCnSw/8F
+YLrgc6NOJtYhX9xqdevbyn1lkU0zPr8mPYg/F84m6MXixm2iuSz8HZoyzwJARi2p
+aYZ5/5B2lwroqnKdZBJMGKFpUDn7Mb5hiSgocxnvMkv6NjT66Xsi3iYakJII9q8C
+Ma1qZvT/cigmdbAh7wJAQNXyoizuGEltiSaBXx4H29EdXNYWDJ9SS5f070BRbAIl
+dqRh3rcNvpY6BKJqFapda1DjdcncZECMizT/GMrc1w==
+-----END RSA PRIVATE KEY-----
+"""
+
+crypto = require? 'crypto'
+
+if crypto
+  #priv = crypto.createCredentials key: privateKey
+  sign = (text) ->
+    signer = crypto.createSign 'RSA-SHA256'
+    signer.update text
+    signer.sign privateKey, 'base64'
+
+else
+  rsa = new RSAKey()
+  rsa.readPrivateKeyFromPEMString privateKey
+  sign = (text) -> hex2b64 rsa.signString text, 'sha256'
+
+publicKey = """
+-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDRhGF7X4A0ZVlEg594WmODVVUI
+iiPQs04aLmvfg8SborHss5gQXu0aIdUT6nb5rTh5hD2yfpF2WIW6M8z0WxRhwicg
+Xwi80H1aLPf6lEPPLvN29EhQNjBpkFkAJUbS8uuhJEeKw0cE49g80eBBF4BCqSL6
+PFQbP9/rByxdxEoAIQIDAQAB
+-----END PUBLIC KEY-----
+"""
+
+if crypto
+  verify = (text, sig) ->
+    verifier = crypto.createVerify 'RSA-SHA256'
+    verifier.update text
+    !! verifier.verify publicKey, sig, 'base64'
+
+else
+  cert = new RSAKey()
+  cert.readPublicKeyFromPEMString publicKey
+
+  verify = (msg, sig) -> cert.verifyString msg, b64tohex sig
+
+@transmit "register outgoing"
+
+@listen "outgoing message", ({id, data}, reply) ->
+  msg = data
+  if msg.trusted
+    nonce = (new Date).getTime()
+
+    #FIXME: should dupe objects before they hit @listen
+    msg.nonce = nonce
+    signature = sign JSON.stringify msg
+    reply "pass with changes", {id, changes: {signature, nonce}}
+  else
+    reply "pass", id
+
+if typeof window isnt "undefined"
+  window.sign = sign
+  window.verify = verify
+
+@transmit "register incoming"
+
+@listen "incoming message", ({id, data}, reply) ->
+  msg = data
+  if msg.signature
+    signature = msg.signature
+    delete msg.signature
+    result = verify (JSON.stringify msg), signature
+
+    #console.log "OH SHIT SON LOOKS LIKE THINGS ABOUT TO GET VERIFIED", result
+
+    #FIXME: should dupe objects before they hit @listen
+    msg.signature = signature
+
+    reply "pass with changes", {id, changes: {verify: result, trusted: result}}
+  else if msg.trusted
+    reply "pass with changes", {id, changes: {trusted: false}}
+  else
+    reply "pass", id

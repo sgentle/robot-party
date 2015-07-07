@@ -1,0 +1,41 @@
+@robot "layoutron",
+  description: "Top-level layout robot. Decides where other display robots go."
+  local: true
+$('body').css 'font-family': "'Ubuntu Mono', monospace"
+
+mainarea = $("<div id='mainarea' />")
+$('body').append mainarea
+mainarea.css position: 'absolute', top:0, left:0, bottom:0, right:0
+
+inputarea = $("<div id='inputarea' />")
+mainarea.append inputarea
+inputarea.css position: 'absolute', bottom: 0, left: 0, right: 0, height: '2em'
+
+textarea = $("<div id='textarea' />")
+mainarea.append textarea
+textarea.css position: 'absolute', top: 0, bottom: '2em', left: 0, right: '20%'
+
+sidebar = $("<div id='sidebar' />")
+mainarea.append sidebar
+sidebar.css position: 'absolute', top: 0, bottom: '2em', left: '80%', right: 0
+
+@listen "want layout", ({data: {name}}, reply) ->
+  console.log "GOT WANT LAYOUT", name
+  if name is "input"
+    reply "layout", parent: '#inputarea'
+
+  if name is "messages"
+    reply "layout", parent: '#textarea'
+
+  if name is "sidebar"
+    reply "layout", parent: "#sidebar"
+
+  else
+    reply "layout", parent: "#mainarea"
+
+@listen "add style", ({data: style}, reply) ->
+  try
+    $(document.head).append $('<style>').text(style)
+    reply "ok"
+  catch e
+    reply "error", e

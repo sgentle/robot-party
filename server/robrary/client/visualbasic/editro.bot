@@ -1,0 +1,59 @@
+@robot 'editro',
+  local: true
+  description: "Robot editing robot."
+
+createEditfield = (elem, code) ->
+  codeMirror = CodeMirror elem, mode: 'coffeescript'
+  elem.querySelector('.codemirror').style.height = 'auto'
+  elem.querySelector('.codemirror-scroll').style.height = 'auto'
+  codeMirror.setValue code
+  return codeMirror
+
+createRoboEditor = (elem, robot) ->
+  code = if typeof robot is 'string' then robot else robot.code
+  children = robot.children or []
+  title = code.match(/["'](.*?)["']/)?[1]
+
+  details = document.createElement('details')
+  details.open = true
+  summary = document.createElement('summary')
+  summary.innerText = title
+  details.appendChild summary
+  elem.appendChild details
+
+  editor = createEditfield details, code
+
+  children = (createRoboEditor details, child for child in children)
+
+  return {editor, children}
+
+getEditorContents = (editor) ->
+  return editor.getValue() if editor.getValue
+
+  {
+    code: editor.editor.getValue()
+    children: (getEditorContents child for child in editor.children)
+  }
+
+@listen "edit robot", ({data:{robot, title, id}}) ->
+  dialog = document.createElement 'div'
+  document.body.appendChild dialog
+
+  $(dialog).dialog(
+    width: Math.round window.innerWidth * 4/5
+    height: Math.round window.innerHeight * 4/5
+    #resize: -> editor.resize()
+    title: title if title
+    close: -> $(this).dialog('destroy').remove()
+    buttons:
+      save: =>
+        @transmit "editbox saved", {title, id, robot: getEditorContents editor}
+      "commit changes": =>
+        @transmit "save robocode"
+  )
+  window.el = dialog
+  if typeof robot is 'string'
+    editor = createEditfield dialog, robot
+  else
+    editor = createRoboEditor dialog, robot
+

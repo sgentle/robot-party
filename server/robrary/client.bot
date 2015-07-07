@@ -1,0 +1,12 @@
+@robot 'client',
+  description: "web client robot"
+
+@listen type: "user name", local: true, ({data:name}) ->
+  @transmit "robot name", name+'-client'
+  @name = name+"-client"
+  @transmit "I have robots", [{@id, @name, @info, parent: @parent?.id}]
+
+# This should probably go somewhere else
+setTimeout =>
+  @transmit local: true, type: 'federate'
+, 500

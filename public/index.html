@@ -1,0 +1,40 @@
+<html>
+  <head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/coffee-script/1.7.1/coffee-script.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js"></script>
+
+    <!-- these scripts should all be in robots somehow -->
+    <script src="/js/sha256.js"></script>
+    <script src="/js/crypto.js"></script>
+    <script src="/js/rsa-pem.js"></script>
+
+    <script src="/js/pouchdb-3.6.0.min.js"></script>
+
+    <script src="/js/codemirror.js" type="text/javascript" charset="utf-8"></script>
+
+    <script type="text/literate-coffeescript" src="Robot.coffee.md"></script>
+
+    <link rel="stylesheet" href="/css/codemirror.css" type="text/css">
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css" type="text/css" media="all">
+    <link href='https://fonts.googleapis.com/css?family=Ubuntu+Mono' rel='stylesheet' type='text/css'>
+    <title>Robot Party!</title>
+  </head>
+  <body>
+    <script type="text/coffeescript">
+      startRobot = (code) -> window.robot = new Robot code
+
+      if localCode = localStorage.getItem 'client.bot'
+        startRobot JSON.parse(localCode)
+      else
+        fetch 'client.bot'
+          .then (response) -> response.json()
+          .then (code) ->
+            #localStorage.setItem 'client.bot', JSON.stringify(code)
+            startRobot code
+
+    </script>
+  </body>
+</html>

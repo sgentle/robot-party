@@ -1,0 +1,11 @@
+@robot "mainpanel",
+  description: "The main panel"
+  local: true
+
+@element = el = document.createElement 'div'
+
+$(el).css
+  display: 'flex'
+  width: '100%'
+  height: '100%'
+  'flex-direction': 'column'
