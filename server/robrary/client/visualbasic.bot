@@ -6,13 +6,14 @@
 # found, that element will be appended to this @element. This is done
 # recursively.
 
-$('body').css
+@element = document.body
+
+@element.style[k] = v for k, v of {
   'font-family': "'Ubuntu Mono', monospace"
   margin: 0
   overflow: 'hidden'
+}
 
-console.log "happening status:", "HAPPENING"
-@element = document.body
 
 guiRemove = (cleanup) ->
   console.log "cleanup for", robot.name

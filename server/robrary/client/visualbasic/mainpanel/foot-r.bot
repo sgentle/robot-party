@@ -4,11 +4,11 @@
 
 @element = el = document.createElement 'footer'
 
-$(el).css
+el.style[k] = v for k, v of {
   order: 10
   display: 'flex'
   # width: '100%'
   height: '2em'
   'flex-direction': 'row'
-
+}
 #el.innerHTML = "hello"

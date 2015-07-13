@@ -5,13 +5,22 @@
 @intercept 'distributeUp', (msg, source, distributeUp) ->
   distributeUp msg, source unless msg.type is 'key sent'
 
-inputbox = $("<div id='inputbox' />")
-cmd = $("<textarea id='cmd' autofocus />")
-rebox = $("<div id='rebox' />")
-inputbox.append rebox
-inputbox.append cmd
+range = document.createRange()
+frag = (html) -> range.createContextualFragment(html)
 
-@element = inputbox[0]
+inputbox = frag("""
+  <div id='inputbox'>
+    <div id='rebox'></div>
+    <textarea id='cmd' autofocus></textarea>
+  </div>
+""").firstElementChild
+
+console.log "inputbox", inputbox
+window.inputbox = inputbox
+@element = inputbox
+
+cmd = inputbox.querySelector('#cmd')
+rebox = inputbox.querySelector('#rebox')
 
 @transmit "add style", "
   #inputbox {
@@ -40,9 +49,12 @@ inputbox.append cmd
   }
 "
 
-rebox.hide()
+hide = (el) -> el.style.display = 'none'
+show = (el) -> el.style.display = null
 
-cmd.keydown (ev) =>
+hide rebox
+
+cmd.addEventListener 'keydown', (ev) =>
   @transmit "key sent",
     key: ev.which,
     ctrl: ev.ctrlKey,
@@ -55,10 +67,10 @@ cmd.keydown (ev) =>
 
 @listen "message clicked", ({data: {id, source}}) ->
   if typeof id is 'string'
-    rebox.text "RE: #{source}"
-    rebox.show()
+    rebox.textContent = "RE: #{source}"
+    show rebox
   else
-    rebox.hide()
+    hide rebox
 
   cmd.focus()
 
@@ -66,22 +78,22 @@ cmd.keydown (ev) =>
   if typeof id is 'string'
     @transmit "get robot info", id, ({data}) ->
       if data.err
-        rebox.hide()
+        hide rebox
       else
-        rebox.text "TO: #{data.name}"
-        rebox.show()
+        rebox.textContent = "TO: #{data.name}"
+        show rebox
   else
-    rebox.hide()
+    hide rebox
 
   cmd.focus()
 
 @listen "get input", ({data}, reply) ->
-  reply "input value", cmd.val()
+  reply "input value", cmd.value
 
 @listen "set input", ({data}, reply) ->
-  cmd.val(data)
+  cmd.value = data
   reply "ok"
 
 @listen "append input", ({data}, reply) ->
-  cmd[0].value += data
+  cmd.value += data
   reply "ok"

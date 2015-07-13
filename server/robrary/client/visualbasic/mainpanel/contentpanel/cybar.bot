@@ -4,9 +4,9 @@
 
 @element = el = document.createElement 'div'
 
-$(el).css
+el.style[k] = v for k, v of {
   display: 'flex'
   order: 10
   width: '30%'
-  height: '100%'
   'flex-direction': 'column'
+}

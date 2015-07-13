@@ -6,11 +6,12 @@
 
 el.id = _.randomId()
 
-$(el).css
+el.style[k] = v for k, v of {
   order: -1
   width: '100%'
   height: '100%'
   'overflow-y': 'scroll'
+}
 
 @listen "robots updated", (data, reply) ->
   reply 'inverse query robots', [{info: local: true}, {info: stored: true}], ({data: robots}) ->

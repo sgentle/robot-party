@@ -17,7 +17,7 @@ createRoboEditor = (elem, robot) ->
   details = document.createElement('details')
   details.open = true
   summary = document.createElement('summary')
-  summary.innerText = title
+  summary.textContent = title
   details.appendChild summary
   elem.appendChild details
 

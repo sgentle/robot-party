@@ -4,7 +4,9 @@
 
 @listen "add style", ({data: style}, reply) ->
   try
-    $(document.head).append $('<style>').text(style)
+    el = document.createElement 'style'
+    el.textContent = style
+    document.head.appendChild el
     reply "ok"
   catch e
     reply "error", e
