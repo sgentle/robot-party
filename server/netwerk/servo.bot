@@ -11,8 +11,6 @@ app.use express.static(__dirname + '/public')
 fs = require 'fs'
 path = require 'path'
 
-Robot = require './Robot.coffee.md'
-
 safeReaddir = (dir) ->
   try
     fs.readdirSync dir
@@ -39,33 +37,42 @@ server = require('http').createServer(app)
 wss = new WebSocketServer {server, path: '/sock'}
 
 clients = []
+broadcast = (msg) ->
+  console.log "broadcasting", msg
+  msg = JSON.stringify msg
+  c.send msg for c in clients when c.readyState is c.OPEN unless msg.local
+
 wss.on 'connection', (client) =>
   console.log "Client connected"
-
+  networkid = _.randomId()
+  @transmit 'network connected', networkid
+  broadcast {type: 'network connected', data: networkid, id: _.randomId(), from: @id, robot: @name}
   clients.push client
 
   client.on 'message', (msg) =>
     return if msg is null or msg.local
-    @transmit 'incoming message', JSON.parse msg
-    console.log "message", msg
+    data = JSON.parse msg
+    (data.path ||= []).unshift networkid
+
+    @transmit 'incoming message', data
+    console.log "message", data
 
     # broadcast to all other clients
-    c.send msg for c in clients when c != client and c.readyState is c.OPEN
+    newmsg = JSON.stringify data
+    c.send newmsg for c in clients when c != client and c.readyState is c.OPEN
 
-  client.on 'close', (reason) ->
+  client.on 'close', (reason) =>
     console.log "Client disconnected (#{reason})"
     # Remove the client from the client list
+    @transmit 'network disconnected', data: networkid
     clients = (c for c in clients when c != client)
+    broadcast {type: 'network disconnected', data: networkid, id: _.randomId(), from: @id, robot: @name}
 
 
 
 server.listen 4321
 
 # Proxy incoming messages from other network channels
-@listen 'incoming message', ({data: msg}) ->
-  msg = JSON.stringify msg
-  c.send msg for c in clients when c.readyState is c.OPEN unless msg.local
+@listen 'incoming message', ({data: msg}) -> broadcast msg
 
-@listen 'send message', ({data: msg}) ->
-  msg = JSON.stringify msg
-  c.send msg for c in clients when c.readyState is c.OPEN unless msg.local
+@listen 'send message', ({data: msg}) -> broadcast msg

@@ -4,9 +4,16 @@
 
 robots = {}
 
-update = => @transmit type: "list robots", local: false
-#setInterval update, 60*1000
-#setTimeout update, 0
+cooldown = null
+startCooldown = ->
+  clearTimeout cooldown
+  cooldown = setTimeout (-> cooldown = null), 1000
+
+update = =>
+  return if cooldown
+  @transmit type: "list robots", local: false
+  startCooldown()
+
 update()
 
 updateDebounce = null
@@ -16,26 +23,37 @@ updated = =>
     @transmit 'robots updated'
   , 100
 
-@listen 'network connected', update
-@listen 'network disconnected', ({data: networkid}) ->
-  anyrobots = false
-  for id, robot of robots when robot.network and robot.network is networkid
-    delete robots[id]
-    anyrobots = true
-  updated() if anyrobots
+networks = {}
 
 @noDefaults ->
+  @listen 'network connected', ({data: networkid, path}) ->
+    networks[networkid] = path
+    setTimeout update, Math.floor(Math.random()*1000)
+  @listen 'network disconnected', ({data: networkid, path}) ->
+    return unless networks[networkid] = path
+    delete networks[networkid]
+    anyrobots = false
+    for id, robot of robots when robot.network and networkid in robot.network
+      delete robots[id]
+      anyrobots = true
+    updated() if anyrobots
+
+
+  @listen "list robots", ({local}) ->
+    console.warn "starting cooldown"
+    startCooldown() unless local
+
   @listen "I have robots", ({from, path, data: robolist}) ->
     for robot in robolist
       newbot = robots[robot.id] = JSON.parse(JSON.stringify(robot))
       #newbot.parent = from
-      newbot.network = path[0] if path
+      newbot.network = path if path
     updated()
 
   @listen "robot added", ({from, path, data: robot}) ->
     newbot = robots[robot.id] = JSON.parse(JSON.stringify(robot))
     newbot.parent = from
-    newbot.network = path[0] if path
+    newbot.network = path if path
     updated()
 
   @listen "robot removed", ({from, data: id}) ->

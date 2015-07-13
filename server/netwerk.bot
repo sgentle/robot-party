@@ -7,7 +7,6 @@ registered = incoming: 0, outgoing: 0
 
 maybepass = (id) ->
   if messages[id]?.topass is 0
-    #console.log "distributing", id, messages[id]
     messages[id].pass messages[id].msg
     delete messages[id]
 
@@ -21,48 +20,49 @@ maybepass = (id) ->
 
 NETWORK_MESSAGES = 'register incoming,register outgoing,pass,pass with changes,send message,incoming message,outgoing message'.split(',')
 
+createNetworkMessage = (msg) =>
+  id = _.randomId()
+  messages[id] =
+    msg: msg
+    topass: registered.outgoing
+    pass: (msg) =>
+      @transmit "send message", msg
+  @transmit type: "outgoing message", id: id, data: msg
+  maybepass id
+
 @distribute = (msg, source) ->
-  if @parent is source and !msg.local
-    @receive msg
+  @receive msg unless this is source
 
-    id = _.randomId()
-    messages[id] =
-      msg: msg
-      topass: registered.outgoing
-      pass: (msg) =>
-        @transmit "send message", msg
-    @transmit type: "outgoing message", id: id, data: msg
-    maybepass id
+  @distributeUp msg, source if @parent isnt source and msg.type not in NETWORK_MESSAGES
+  @distributeDown msg, source
 
-  else
-    @receive msg unless this is source
-    @distributeUp msg, source unless msg?.type in NETWORK_MESSAGES
-    @distributeDown msg, source
-
+  createNetworkMessage msg unless msg.local
 
 @listen "incoming message", ({id, data:msg}) ->
   messages[id] =
     msg: msg
     topass: registered.incoming
-    pass: (msg) => @distributeUp msg, this
+    pass: (msg) =>
+      @receive msg
+      @distributeUp msg, this
+      @distributeDown msg, this
   maybepass id
 
 
-@listen "register incoming", ->
-  registered.incoming++
+@listen "register incoming", -> registered.incoming++
 
-@listen "register outgoing", ->
-  registered.outgoing++
+@listen "register outgoing", -> registered.outgoing++
 
 
 @listen "pass with changes", ({data:{id, changes}}) ->
-  #console.log "!!!!! got pass with changes", id, changes
-  if messages[id]
-    messages[id].msg[key] = val for key, val of changes
-    messages[id].topass--
-    maybepass id
+  return unless messages[id]
+
+  messages[id].msg[key] = val for key, val of changes
+  messages[id].topass--
+  maybepass id
 
 @listen "pass", ({data:id}) ->
-  if messages[id]
-    messages[id].topass--
-    maybepass id
+  return unless messages[id]
+
+  messages[id].topass--
+  maybepass id
