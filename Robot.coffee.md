@@ -311,7 +311,7 @@ The API provides the following methods:
       remove: (id, cb=->) ->
         console.log "removing id", id
         child = null; i = null
-        [child, i] = [_child, i] for _child, _i in @children when id is _child.id
+        [child, i] = [_child, _i] for _child, _i in @children when id is _child.id
         return cb new Error "no such robot" unless child
 
         console.log "child", child, i
