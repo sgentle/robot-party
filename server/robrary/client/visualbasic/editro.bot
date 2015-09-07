@@ -4,8 +4,8 @@
 
 createEditfield = (elem, code) ->
   codeMirror = CodeMirror elem, mode: 'coffeescript'
-  elem.querySelector('.codemirror').style.height = 'auto'
-  elem.querySelector('.codemirror-scroll').style.height = 'auto'
+  elem.querySelector('.CodeMirror').style.height = 'auto'
+  elem.querySelector('.CodeMirror-scroll').style.height = 'auto'
   codeMirror.setValue code
   return codeMirror
 
@@ -15,7 +15,7 @@ createRoboEditor = (elem, robot) ->
   title = code.match(/["'](.*?)["']/)?[1]
 
   details = document.createElement('details')
-  details.open = true
+  details.open = true #has to be open or codemirror freaks out
   summary = document.createElement('summary')
   summary.textContent = title
   details.appendChild summary
@@ -56,4 +56,5 @@ getEditorContents = (editor) ->
     editor = createEditfield dialog, robot
   else
     editor = createRoboEditor dialog, robot
+    d.open = false for d, i in dialog.querySelectorAll('details') when i isnt 0
 

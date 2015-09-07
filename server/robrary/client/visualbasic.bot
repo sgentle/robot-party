@@ -12,7 +12,11 @@
   'font-family': "'Ubuntu Mono', monospace"
   margin: 0
   overflow: 'hidden'
+  width: '100%'
+  height: '100%'
 }
+
+document.documentElement.style[k] = '100%' for k in ['width', 'height']
 
 
 guiRemove = (cleanup) ->

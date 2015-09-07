@@ -10,6 +10,7 @@ el.style[k] = v for k, v of {
   order: -1
   width: '100%'
   height: '100%'
+  flex: 1
   'overflow-y': 'scroll'
 }
 

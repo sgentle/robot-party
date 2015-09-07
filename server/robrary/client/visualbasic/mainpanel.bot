@@ -6,6 +6,7 @@
 
 el.style[k] = v for k, v of {
   display: 'flex'
+  flex: 1
   width: '100%'
   height: '100%'
   'flex-direction': 'column'
