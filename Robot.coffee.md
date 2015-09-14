@@ -73,16 +73,16 @@ robots as follows:
         else
           children = []
 
-        fn = eval "(function(_){" + coffeescript.compile(@code, bare: true) + "})"
+        fn = eval '(function(_){' + coffeescript.compile(@code, bare: true) + '})'
         fn.call this, _
 
-        console.log "added", @name, "with", children.length, "children"
+        console.log 'added', @name, 'with', children.length, 'children'
 
         nextTick =>
           for child in children
             @add child, (err) =>
-              console.log "error", child, err if err
-              @transmit "error", {message: err.message, stack: err.stack, type: err.type} if err
+              console.log 'error', child, err if err
+              @transmit 'error', {message: err.message, stack: err.stack, type: err.type} if err
 
 The first line of a robot is always its `@robot` directive. This specifies
 details about a robot like its name and an object with arbitrary information.
@@ -134,7 +134,7 @@ more replies.
 The done parameter is optional. If you don't include it then it'll be called
 automatically (you'll only receive the first reply to your message).
 
-      transmit: (metadata, data, callback, defaults=@defaults) ->
+      transmit: (metadata, data, callback, defaults = @defaults) ->
         metadata = {type: metadata} if typeof metadata is 'string'
         [callback, data] = [data] if typeof data is 'function'
         msg = _.extend {}, defaults.transmit, {data, id: _.randomId(), from: @id, robot: @name}, metadata
@@ -171,7 +171,7 @@ automatically (you'll only receive the first reply to your message).
 The reply callback is a version of the @transmit function that will
 automatically set the `re` field to the message id of the received message.
 
-      listen: (matcher, callback, defaults=@defaults) ->
+      listen: (matcher, callback, defaults = @defaults) ->
         [callback, matcher] = [matcher] if not callback?
         ok = (msg, src) => callback.call this, msg, @makeReply(msg, defaults), src
 
@@ -188,7 +188,7 @@ automatically set the `re` field to the message id of the received message.
 
       makeReply: (msg, defaults) ->
         (metadata, data, callback) =>
-          metadata = {type:metadata} if typeof metadata is 'string'
+          metadata = {type: metadata} if typeof metadata is 'string'
           metadata.re ?= msg.id
           @transmit metadata, data, callback, defaults
 
@@ -298,10 +298,10 @@ The API provides the following methods:
 
 **@add**/**"add robot"** adds a new child to this robot
 
-      add: (code, cb=->) ->
+      add: (code, cb = ->) ->
         try
           robot = new Robot this, code
-          console.log "robot", robot
+          console.log 'robot', robot
           @children.push robot
           cb null, robot
 
@@ -310,13 +310,14 @@ The API provides the following methods:
 
 **@remove**/**"remove robot"** removes a child from this robot
 
-      remove: (id, cb=->) ->
-        console.log "removing id", id
+      remove: (id, cb = ->) ->
+        console.log 'removing id', id
         child = null; i = null
-        [child, i] = [_child, _i] for _child, _i in @children when id is _child.id
-        return cb new Error "no such robot" unless child
+        for _child, _i in @children when id is _child.id
+          [child, i] = [_child, _i]
+        return cb new Error 'no such robot' unless child
 
-        console.log "child", child, i
+        console.log 'child', child, i
         child.cleanup()
         @children.splice(i, 1)
         cb null
@@ -325,7 +326,7 @@ The API provides the following methods:
 a simple string if the robot has no children, or a nested object that can be
 passed back into `@add`
 
-      get: (cb=->) ->
+      get: (cb = ->) ->
         code = @code
         return cb null, code if @children.length is 0
         result = {code, children: []}
@@ -343,7 +344,7 @@ that means its children, but if those children would not be able to respond on
 their own it should include their grandchildren and so on. Similarly, robots
 with no parents should add themselves to this list.
 
-      list: (cb=->) ->
+      list: (cb = ->) ->
         robots = ({id, name, info, parent: @id} for {id, name, info} in @children)
         robots.push {@id, @name, @info, parent: null} if !@parent
         cb null, robots
@@ -352,34 +353,34 @@ Finally we expose all these functions via robot messages.
 
       addRobotAPI: ->
         @noDefaults ->
-          @listen type: "add robot", to: @id, trusted: true, ({data: code}, reply) ->
+          @listen type: 'add robot', to: @id, trusted: true, ({data: code}, reply) ->
             @add code, (err, robot) ->
               if err
-                reply "error", {message: err.message, stack: err.stack, type: err.type}
+                reply 'error', {message: err.message, stack: err.stack, type: err.type}
               else
-                reply "robot added", {id: robot.id, name: robot.name, info: robot.info}
+                reply 'robot added', {id: robot.id, name: robot.name, info: robot.info}
 
-          @listen type: "remove robot", to: @id, trusted: true, ({data: id}, reply) ->
+          @listen type: 'remove robot', to: @id, trusted: true, ({data: id}, reply) ->
             @remove id, (err) ->
               if err
-                reply "error", {message: err.message, stack: err.stack, type: err.type}
+                reply 'error', {message: err.message, stack: err.stack, type: err.type}
               else
-                reply "robot removed", id
+                reply 'robot removed', id
 
-          @listen type: "get robot", to: @id, (msg, reply) ->
+          @listen type: 'get robot', to: @id, (msg, reply) ->
             @get (err, robot) ->
               if err
-                reply "error", {message: err.message, stack: err.stack, type: err.type}
+                reply 'error', {message: err.message, stack: err.stack, type: err.type}
               else
-                reply type: "code for robot", data: robot, local: msg.local
+                reply type: 'code for robot', data: robot, local: msg.local
 
-          @listen type: "list robots", ({data: id, to}, reply) ->
+          @listen type: 'list robots', ({data: id, to}, reply) ->
             @list (err, robots) =>
               if err
-                reply "error", {message: err.message, stack: err.stack, type: err.type}
+                reply 'error', {message: err.message, stack: err.stack, type: err.type}
               else
-                #console.log "robots robots", robots if (to and to is @id) or robots.length > 0
-                reply "I have robots", robots if (to and to is @id) or robots.length > 0
+                # console.log 'robots robots', robots if (to and to is @id) or robots.length > 0
+                reply 'I have robots', robots if (to and to is @id) or robots.length > 0
 
 
 These functions can be overridden in interesting ways. For example, the
@@ -404,7 +405,7 @@ useful functions added in.
 **_.randomId** is used for generating message and robot ids.
 
       randomId: (length = 10) ->
-        chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-="
+        chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-='
         (chars[Math.floor(Math.random() * chars.length)] for x in [0...length]).join('')
 
 **_.intercept** lets you intercept a function.
@@ -429,14 +430,13 @@ coffeescript parser to pull out the values without evaluating them might be.
       inspectRobot: (code) ->
         exc = new Error()
         dummy =
-          robot: (@name, @info={}) ->
+          robot: (@name, @info = {}) ->
             throw exc
 
         # Handle robots in recursive object form.
         code = code.code if typeof code is 'object'
-
         try
-          fn = eval "(function(_){" + coffeescript.compile(code, bare: true) + "})"
+          fn = eval '(function(_){' + coffeescript.compile(code, bare: true) + '})'
           fn.call dummy, _
         catch e
           if e is exc
