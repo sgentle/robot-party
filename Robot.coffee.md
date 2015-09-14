@@ -30,7 +30,9 @@ we want to do any neat meta-trickery.
 
     coffeescript = window?.CoffeeScript or require 'coffee-script'
     _ = window?._ or require 'underscore'
-    nextTick = process?.nextTick || (fn) -> setTimeout fn, 0
+    nextTick = process?.nextTick or
+      (Promise && (fn) -> Promise.resolve().then fn) or
+      (fn) -> setTimeout fn, 0
 
 
 Robot
